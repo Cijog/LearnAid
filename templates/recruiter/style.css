@@ -1,0 +1,152 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #111933;
+    font-family: 'Arial', sans-serif;
+}
+
+a {
+    text-decoration: none;
+}
+
+main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    justify-content: center;
+    margin: 100px auto 0;
+    max-width: 800px;
+    overflow: hidden;
+}
+
+main > * {
+    grid-row: 1 / 2;
+}
+
+.login,
+.signup {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    padding: 20px;
+    color: #fff;
+    font-size: 24px;
+    background: #cf0b4c;
+    padding: 20% 20px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+}
+
+.login > img,
+.signup > img {
+    width: 200px;
+    cursor: pointer;
+}
+
+.login {
+    grid-column: 1 / 2;
+}
+
+.signup {
+    grid-column: 2 / 3;
+}
+
+.login-form {
+    grid-column: 1 / 2;
+    transform: translateX(-100%);
+}
+.signup-form {
+    grid-column: 2 / 3;
+    transform: translateX(100%);
+}
+
+form {
+    padding: 30px 20px;
+    max-width: 500px;
+    height: 520px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: transform 0.5s;
+}
+
+form.active {
+    transform: translateX(0);
+}
+
+.back-layer {
+    display: grid;
+    grid-column: 1 / 3;
+    grid-template-columns: 1fr 1fr;
+    clip-path: inset(0 50% 0 0);
+    background: #fff;
+    z-index: 5;
+    transition: clip-path 0.3s;
+}
+
+.login-label {
+    text-align: center;
+    font-size: 40px;
+    color: #cf0b4c;
+    margin: 10px;
+}
+
+form > p {
+    text-align: center;
+}
+
+input {
+    display: block;
+    height: 40px;
+    width: 100%;
+    padding-left: 15px;
+    margin: 10px 0;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    outline: none;
+    font-size: 16px;
+}
+
+input:focus {
+    border-color: #cf0b4c;
+}
+
+label {
+    font-weight: normal;
+    font-size: 14px;
+    color: #333;
+}
+
+button {
+    background: #cf0b4c;
+    border: none;
+    color: #fff;
+    width: 100%;
+    height: 40px;
+    text-transform: uppercase;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    margin-top: 20px;
+}
+
+form button:hover {
+    background-color: #a60b3a;
+}
+
+.form-text {
+    color: #666;
+    font-size: 14px;
+    text-align: center;
+    margin-top: 20px;
+}
+
+.form-text a {
+    color: #cf0b4c;
+}

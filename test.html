@@ -1,0 +1,345 @@
+from flask import Flask, render_template, request, redirect, url_for, session, flash
+from werkzeug.utils import secure_filename
+import mysql.connector
+from flask import send_from_directory, abort
+import os
+
+app = Flask(__name__, template_folder='templates')
+app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SESSION_PERMANENT'] = False
+app.config['SESSION_TYPE'] = 'filesystem'
+
+def get_db_connection():
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="",
+        database="skill"
+    )
+    return conn
+
+@app.route('/')
+def index():
+    if 'logged_in' in session:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Fetch jobs from the database
+        cursor.execute('SELECT job_id, job_name, job_type, job_salary FROM jobs')
+        jobs = cursor.fetchall()
+
+        # Debugging print to check if jobs are fetched
+        print(f"Fetched jobs: {jobs}")  # Output to the console
+
+        cursor.close()
+        conn.close()
+
+        # Check the role in session to decide which template to render
+        if session['role'] == 'applicant':
+            return render_template('applicant/index.html', jobs=jobs)
+        elif session['role'] == 'recruiter':
+            return render_template('recruiter/index.html', jobs=jobs)
+        elif session['role'] == 'admin':
+            return render_template('admin/index.html', jobs=jobs)
+
+    return redirect(url_for('login'))
+
+# Applicant Dashboard Route
+@app.route('/applicant/dashboard')
+def applicant_dashboard():
+    if 'role' in session and session['role'] == 'applicant':
+        return render_template('applicant/index.html')
+    else:
+        flash('Unauthorized access!')
+        return redirect(url_for('login'))
+
+# Recruiter Dashboard Route
+@app.route('/recruiter/dashboard')
+def recruiter_dashboard():
+    if 'role' in session and session['role'] == 'recruiter':
+        return render_template('recruiter/index.html')
+    else:
+        flash('Unauthorized access!')
+        return redirect(url_for('login'))
+
+# Admin Dashboard Route
+@app.route('/admin/dashboard')
+def admin_dashboard():
+    if 'role' in session and session['role'] == 'admin':
+        return render_template('admin/index.html')
+    else:
+        flash('Unauthorized access!')
+        return redirect(url_for('login'))
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        app_name = request.form['app_name']
+        app_pass = request.form['app_pass']
+
+        # Database query to check credentials for applicant, recruiter, and admin
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Check if user is an applicant
+        cursor.execute('SELECT * FROM applicant WHERE app_name=%s AND app_pass=%s', (app_name, app_pass))
+        user = cursor.fetchone()
+
+        if user:
+            session['role'] = 'applicant'
+            session['app_name'] = user['app_name']
+            session['app_id'] = user['app_id']
+            session['logged_in'] = True
+            cursor.close()
+            conn.close()
+            return redirect(url_for('applicant_dashboard'))  # Redirect to applicant dashboard
+
+        # Check if user is a recruiter
+        cursor.execute('SELECT * FROM recruiter WHERE rec_name=%s AND rec_pass=%s', (app_name, app_pass))
+        user = cursor.fetchone()
+
+        if user:
+            session['role'] = 'recruiter'
+            session['rec_name'] = user['rec_name']
+            session['rec_id'] = user['rec_id']
+            session['logged_in'] = True
+            cursor.close()
+            conn.close()
+            return redirect(url_for('recruiter_dashboard'))  # Redirect to recruiter dashboard
+
+        # Check if user is an admin
+        cursor.execute('SELECT * FROM admin WHERE admin_name=%s AND admin_pass=%s', (app_name, app_pass))
+        user = cursor.fetchone()
+
+        if user:
+            session['role'] = 'admin'
+            session['admin_name'] = user['admin_name']
+            session['admin_id'] = user['admin_id']
+            session['logged_in'] = True
+            cursor.close()
+            conn.close()
+            return redirect(url_for('admin_dashboard'))  # Redirect to admin dashboard
+
+        # If no user is found in any table
+        flash('Invalid credentials. Please try again.')
+        cursor.close()
+        conn.close()
+        return redirect(url_for('login'))
+
+    return render_template('login.html')
+
+
+@app.route('/signup', methods=['POST'])
+def signup():
+    if request.method == 'POST':
+        app_name = request.form['app_name']
+        app_pass = request.form['app_pass']
+        confirm_pass = request.form['confirm_pass']
+
+        if app_pass != confirm_pass:
+            flash('Passwords do not match!')
+            return redirect(url_for('signup'))
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Check if username already exists
+        cursor.execute('SELECT * FROM applicant WHERE app_name=%s', (app_name,))
+        existing_user = cursor.fetchone()
+
+        if existing_user:
+            flash('Username already exists!')
+            return redirect(url_for('login'))
+
+        # Insert new user into the applicant table
+        cursor.execute('INSERT INTO applicant (app_name, app_pass) VALUES (%s, %s)', (app_name, app_pass))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        flash('Registration successful! Please log in.')
+        return redirect(url_for('login'))
+        
+@app.route('/logout')
+def logout():
+    session.clear()  # Clear all session data
+    return redirect(url_for('login'))
+
+
+@app.route('/about', methods=['GET', 'POST'])
+def about():
+    app_id = session.get('app_id')
+
+    # Fetch applicant details
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM applicant WHERE app_id = %s", (app_id,))
+    applicant = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if request.method == 'POST':
+        app_name = request.form['app_name']
+        app_email = request.form['app_email']
+        app_phone = request.form['app_phone']
+        app_gender = request.form['app_gender']
+        app_institution = request.form['app_institution']
+        app_course = request.form['app_course']
+        app_yearofstudy = request.form['app_yearofstudy']
+        app_cgpa = request.form['app_cgpa']
+        
+        # File upload for CV and Cover Letter
+        app_cv = applicant['app_cv']
+        app_letter = applicant['app_letter']
+
+        if 'app_cv' in request.files and request.files['app_cv'].filename:
+            cv_file = request.files['app_cv']
+            app_cv = secure_filename(cv_file.filename)
+            cv_file.save(os.path.join(app.config['UPLOAD_FOLDER'], app_cv))
+
+        if 'app_letter' in request.files and request.files['app_letter'].filename:
+            letter_file = request.files['app_letter']
+            app_letter = secure_filename(letter_file.filename)
+            letter_file.save(os.path.join(app.config['UPLOAD_FOLDER'], app_letter))
+
+        # Update applicant details
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE applicant
+            SET app_name = %s, app_email = %s, app_phone = %s, app_gender = %s, app_institution = %s,
+                app_course = %s, app_yearofstudy = %s, app_cgpa = %s, app_cv = %s, app_letter = %s
+            WHERE app_id = %s
+        """, (app_name, app_email, app_phone, app_gender, app_institution, app_course, app_yearofstudy, app_cgpa, app_cv, app_letter, app_id))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        flash('Profile updated successfully!')
+        return redirect(url_for('about'))
+
+    return render_template('about.html', applicant=applicant)
+
+@app.route('/view_cv/<filename>')
+def view_cv(filename):
+    try:
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    except FileNotFoundError:
+        abort(404)
+
+@app.route('/view_cover_letter/<filename>')
+def view_cover_letter(filename):
+    try:
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    except FileNotFoundError:
+        abort(404)
+
+
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
+@app.route('/job-list')
+def job_list():
+    if 'logged_in' not in session:
+        return redirect(url_for('login'))
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('SELECT job_id, job_name, job_type, job_salary FROM jobs')
+    jobs = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return render_template('job-list.html', jobs=jobs)
+
+@app.route('/job/<int:job_id>')
+def job_detail(job_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    query = """
+        SELECT job_id,job_name, job_type, job_salary, job_desc, job_resp, job_qual, job_date, job_vac, job_nature, job_ddate
+        FROM jobs 
+        WHERE job_id = %s
+    """
+    cursor.execute(query, (job_id,))
+    job = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    job_resp_list = job['job_resp'].split(',')
+    job_qual_list = job['job_qual'].split(',')
+
+    return render_template('job-detail.html', job=job, job_resp_list=job_resp_list, job_qual_list=job_qual_list)
+
+UPLOAD_FOLDER = 'static/resumes'
+ALLOWED_EXTENSIONS = {'pdf'}
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Check if the file has a valid extension
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/apply/<int:job_id>', methods=['POST'])
+def apply_job(job_id):
+    if 'logged_in' not in session or not session.get('app_id'):
+        flash('Please log in to apply for the job.')
+        return redirect(url_for('login'))
+
+    if 'resume' not in request.files:
+        flash('No resume uploaded')
+        return redirect(request.url)
+
+    file = request.files['resume']
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+        # Get form data
+        portfolio = request.form.get('portfolio')
+        coverletter = request.form.get('coverletter')
+        app_id = session.get('app_id')
+
+        # Insert data into the applicant and applied tables
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE applicant
+            SET app_portfolio = %s, app_cv = %s, app_cover = %s
+            WHERE app_id = %s
+        """, (portfolio, filename, coverletter, app_id))
+
+        cursor.execute("""
+            INSERT INTO applied (job_id, app_id)
+            VALUES (%s, %s)
+        """, (job_id, app_id))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        flash('Application submitted successfully!')
+        return redirect(url_for('job_detail', job_id=job_id))
+    else:
+        flash('Invalid file format. Only PDF files are allowed.')
+        return redirect(request.url)
+
+
+@app.route('/category')
+def category():
+    return render_template('category.html')
+
+@app.route('/testimonial')
+def testimonial():
+    return render_template('testimonial.html')
+
+@app.route('/404')
+def page_not_found():
+    return render_template('404.html')
+
+@app.route('/<path:filename>')
+def serve_static(filename):
+    return send_from_directory('static', filename)
+
+if __name__ == '__main__':
+    app.run(debug=True)

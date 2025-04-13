@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LearnAid Admin Dashboard</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .navbar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar h1 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 24px;
+        }
+        .logout-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .logout-btn:hover {
+            background-color: #c0392b;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        .dashboard {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .dashboard button {
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #ffffff;
+            color: #2ecc71;
+            border: 2px solid #2ecc71;
+            border-radius: 5px;
+            margin-right: 15px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+        .dashboard button:hover, .dashboard button.active {
+            background-color: #2ecc71;
+            color: white;
+        }
+        .content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .action-btn {
+            padding: 8px 12px;
+            margin-right: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .accept-btn {
+            background-color: #2ecc71;
+            color: white;
+        }
+        .accept-btn:hover {
+            background-color: #27ae60;
+        }
+        .decline-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .decline-btn:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>LearnAid Admin Dashboard</h1>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+    <div class="container">
+        <div class="dashboard">
+            <button onclick="showRecruiters()" id="recruitersBtn">Recruiters</button>
+            <button onclick="showRequests()" id="requestsBtn">Requests</button>
+            <button onclick="showApplicants()" id="applicantsBtn">Applicants</button>
+            <button onclick="showMessages()" id="messagesBtn">Messages</button>
+            <button onclick="showReports()" id="reportsBtn">Reports</button>
+        </div>
+        
+        <div id="content" class="content">
+            <!-- Content will be dynamically loaded here -->
+        </div>
+    </div>
+
+    <script>
+            function logout() {
+        window.location.href = '/admin/logout';
+            }
+
+
+        function setActiveButton(buttonId) {
+            document.querySelectorAll('.dashboard button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(buttonId).classList.add('active');
+        }
+
+        function showRecruiters() {
+    setActiveButton('recruitersBtn');
+    fetch('/admin/recruiters')
+        .then(response => response.json())
+        .then(recruiters => {
+            let tableContent = `
+                <h2 style="color: #2c3e50; margin-bottom: 20px;">Recruiter Activity</h2>
+                <table>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Company</th>
+                        <th>Position</th>
+                        <th>Number of Scholarships</th>
+                    </tr>
+            `;
+            recruiters.forEach(recruiter => {
+                tableContent += `
+                    <tr>
+                        <td>${recruiter.rec_id}</td>
+                        <td>${recruiter.rec_name}</td>
+                        <td>${recruiter.rec_email}</td>
+                        <td>${recruiter.rec_org}</td>
+                        <td>${recruiter.rec_position}</td>
+                        <td>${recruiter.scholarships_posted}</td>
+                    </tr>
+                `;
+            });
+            tableContent += '</table>';
+            document.getElementById('content').innerHTML = tableContent;
+        })
+        .catch(error => console.error('Error fetching recruiters:', error));
+}
+
+function showApplicants() {
+    setActiveButton('applicantsBtn');
+    fetch('/admin/applicants')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            let applicants = data.applicants;
+            let totalApplicants = data.total_applicants;
+
+            let tableContent = `
+                <h2 style="color: #2c3e50; margin-bottom: 20px;">Applicants</h2>
+                <p>Total Applicants Using the System: <strong>${totalApplicants}</strong></p>
+                <table>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Institution</th>
+                        <th>CGPA</th>
+                        <th>Scholarships Applied</th>
+                    </tr>
+            `;
+
+            if (data.message) {
+                tableContent += `<tr><td colspan="7">${data.message}</td></tr>`;
+            } else {
+                applicants.forEach(applicant => {
+                    tableContent += `
+                        <tr>
+                            <td>${applicant.app_id}</td>
+                            <td>${applicant.app_name}</td>
+                            <td>${applicant.app_email}</td>
+                            <td>${applicant.app_phone}</td>
+                            <td>${applicant.app_institution}</td>
+                            <td>${applicant.app_cgpa}</td>
+                            <td>${applicant.scholarship_count}</td>
+                        </tr>
+                    `;
+                });
+            }
+            tableContent += '</table>';
+            document.getElementById('content').innerHTML = tableContent;
+        })
+        .catch(error => {
+            console.error('Error fetching applicants:', error);
+            document.getElementById('content').innerHTML = `<p style="color:red;">Error loading applicants: ${error.message}</p>`;
+        });
+}
+
+
+function showRequests() {
+    setActiveButton('requestsBtn');
+    fetch('/admin/recruiter-requests')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch recruiter requests');
+            }
+            return response.json();
+        })
+        .then(data => {
+            let tableContent = `
+                <h2 style="color: #2c3e50; margin-bottom: 20px;">Recruiter Requests</h2>
+                <table>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Company</th>
+                        <th>Action</th>
+                    </tr>`;
+
+            data.forEach(req => {
+                tableContent += `
+                    <tr>
+                        <td>${req.req_id}</td>
+                        <td>${req.rec_name}</td>
+                        <td>${req.rec_email}</td>
+                        <td>${req.rec_web}</td>
+                        <td>
+                            <button class="action-btn accept-btn" onclick="handleRecruiterAction(${req.req_id}, 'accept')">Accept</button>
+                            <button class="action-btn decline-btn" onclick="handleRecruiterAction(${req.req_id}, 'decline')">Decline</button>
+                        </td>
+                    </tr>`;
+            });
+
+            tableContent += `</table>`;
+            document.getElementById('content').innerHTML = tableContent;
+        })
+        .catch(error => {
+            console.error('Error loading recruiter requests:', error);
+            alert('Failed to load recruiter requests');
+        });
+}
+
+function handleRecruiterAction(req_id, action) {
+    console.log("Button clicked for recruiter ID:", req_id, "Action:", action);  // Debugging log
+
+    fetch(`/admin/handle-recruiter-action`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ req_id: req_id, action: action })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Response received:", data);  // Debugging log
+        if (data.success) {
+            alert(data.message);
+            showRequests();  // Refresh the table
+        } else {
+            console.error('Error returned from server:', data.message);
+            alert('Error: ' + data.message);  // Display error message
+        }
+    })
+    .catch(error => {
+        console.error('Error handling recruiter action:', error);  // Debugging log
+        alert('Failed to perform recruiter action: ' + error.message);
+    });
+}
+
+
+
+
+        function showMessages() {
+        setActiveButton('messagesBtn');
+        fetch('/admin/messages')
+            .then(response => response.json())
+            .then(data => {
+                let tableContent = `
+                    <h2 style="color: #2c3e50; margin-bottom: 20px;">Messages</h2>
+                    <table>
+                        <tr>
+                            <th>ID</th>
+                            <th>Role</th>
+                            <th>Type</th>
+                            <th>Message</th>
+                        </tr>`;
+
+                data.forEach(msg => {
+                    tableContent += `
+                        <tr>
+                            <td>${msg.id}</td>
+                            <td>${msg.mess_role}</td>
+                            <td>${msg.mess_type}</td>
+                            <td>${msg.mess}</td>
+                        </tr>`;
+                });
+
+            tableContent += `</table>`;
+            document.getElementById('content').innerHTML = tableContent;
+        })
+        .catch(error => console.error('Error fetching messages:', error));
+}
+
+function showReports() {
+    setActiveButton('reportsBtn');
+    fetch('/admin/reports')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch reports');
+            }
+            return response.json();
+        })
+        .then(data => {
+            let tableContent = `
+                <h2 style="color: #2c3e50; margin-bottom: 20px;">Applicant Application Status Report</h2>
+                <table>
+                    <tr>
+                        <th>Status</th>
+                        <th>Number of Applications</th>
+                    </tr>`;
+            
+            data.forEach(row => {
+                tableContent += `
+                    <tr>
+                        <td>
+                            <a href="#" onclick="showReportDetails('${row.app_status}')">
+                                ${row.app_status}
+                            </a>
+                        </td>
+                        <td>${row.count}</td>
+                    </tr>`;
+            });
+
+            tableContent += `</table>`;
+            document.getElementById('content').innerHTML = tableContent;
+        })
+        .catch(error => {
+            console.error('Error loading reports:', error);
+            alert('Failed to load reports');
+        });
+}
+
+function showReportDetails(status) {
+    fetch(`/admin/reports/${status}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch details for ' + status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            let tableContent = `
+                <h2 style="color: #2c3e50; margin-bottom: 20px;">Details for Status: ${status}</h2>
+                <table>
+                    <tr>
+                        <th>Applicant Name</th>
+                        <th>Email</th>
+                        <th>Course</th>
+                        <th>CGPA</th>
+                        <th>Scholarship</th>
+                    </tr>`;
+            
+            data.forEach(applicant => {
+                tableContent += `
+                    <tr>
+                        <td>${applicant.app_name}</td>
+                        <td>${applicant.app_email}</td>
+                        <td>${applicant.app_course}</td>
+                        <td>${applicant.app_cgpa}</td>
+                        <td>${applicant.job_name}</td>
+                    </tr>`;
+            });
+
+            tableContent += `</table>`;
+            document.getElementById('content').innerHTML = tableContent;
+        })
+        .catch(error => {
+            console.error('Error fetching details:', error);
+            alert('Failed to fetch details for status: ' + status);
+        });
+}
+
+
+       
+
+        // Show recruiters by default when the page loads
+        showRecruiters();
+    </script>
+</body>
+</html>

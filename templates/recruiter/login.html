@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login and Sign Up - Job Portal</title>
+
+    <!-- Style CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+    <main>
+        <div class="signup">
+            <img src="{{ url_for('static', filename='css/login.png') }}" alt="Sign Up" class="sign-up-btn">
+        </div>
+        <div class="login">
+            <img src="{{ url_for('static', filename='css/signup.png') }}" alt="Login" class="login-btn">
+        </div>
+
+        <div class="back-layer">
+            <!-- Login Form -->
+            <form action="{{ url_for('login') }}" method="POST" class="login-form active">
+                <h2 class="login-label">Login Form</h2>
+                <p>Enter your login credentials.</p>
+                <input type="text" name="app_name" placeholder="Username" required />
+                <input type="password" name="app_pass" placeholder="Password" required />
+                <button type="submit">Login</button>
+                <div class="form-text">
+                    <p>Don't have an account? <a href="#" class="sign-up-btn">Sign up here</a></p>
+                </div>
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <div class="flash-messages">
+                            {% for message in messages %}
+                                <p>{{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+            </form>
+
+            <!-- Sign Up Form -->
+        <form action="{{ url_for('signup') }}" method="POST" class="signup-form">
+            <h2 class="login-label">Sign Up Form</h2>
+            <p>Provide your personal details.</p>
+            <input type="text" name="app_name" placeholder="Username" required />
+            <input type="password" name="app_pass" id="password" placeholder="Password" required />
+            <input type="password" name="confirm_pass" id="confirm_password" placeholder="Confirm Password" required />
+            
+            <button type="submit" id="signup-btn">Sign Up</button>
+            <div class="form-text">
+                <p>Already have an account? <a href="#" class="login-btn">Login here</a></p>
+            </div>
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for message in messages %}
+                            <p>{{ message }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+        </form>
+
+
+    <!-- Script JS -->
+    <script src="{{ url_for('static', filename='css/script.js') }}"></script>
+    <script>
+        document.getElementById('signup-btn').addEventListener('click', function(event) {
+            var password = document.getElementById('password').value;
+            var confirmPassword = document.getElementById('confirm_password').value;
+    
+            if (password !== confirmPassword) {
+                event.preventDefault();
+                alert('Passwords do not match. Please check again.');
+            }
+        });
+    </script>
+    
+</body>
+</html>
